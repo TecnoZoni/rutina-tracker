@@ -21,23 +21,26 @@ export default function RootNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerTitleStyle: { fontWeight: '600' },
-        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTitleStyle: {
+          fontWeight: '600',
+          letterSpacing: 0.2,
+          fontFamily: theme.fonts.titleLarge.fontFamily,
+        },
+        headerStyle: { backgroundColor: theme.colors.background },
         headerTintColor: theme.colors.onSurface,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+        tabBarLabelStyle: {
+          fontFamily: theme.fonts.labelMedium.fontFamily,
+          letterSpacing: 0.2,
+        },
         tabBarStyle: {
           borderTopColor: theme.colors.outlineVariant,
           borderTopWidth: 1,
-          backgroundColor: theme.colors.surface,
+          backgroundColor: theme.colors.background,
           ...Platform.select({
-            android: { elevation: 10 },
-            ios: {
-              shadowColor: '#000',
-              shadowOpacity: 0.08,
-              shadowRadius: 14,
-              shadowOffset: { width: 0, height: -4 },
-            },
+            android: { elevation: 0 },
+            ios: { shadowOpacity: 0 },
             default: {},
           }),
         },

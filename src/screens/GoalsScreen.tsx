@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { ScrollView, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Button,
   Dialog,
-  Divider,
   IconButton,
-  List,
   Portal,
   SegmentedButtons,
   Text,
@@ -15,6 +14,7 @@ import {
 import AppCard from '../components/AppCard';
 import EmptyState from '../components/EmptyState';
 import { TargetIllustration } from '../components/Illustrations';
+import ScreenLayout from '../components/ScreenLayout';
 import { useRoutine } from '../context/RoutineContext';
 import { useAppTheme, type ThemePreference } from '../context/ThemeContext';
 import { todayId } from '../utils/date';
@@ -41,10 +41,23 @@ export default function GoalsScreen() {
   }, [addGoal, closeAdd, newGoalTitle]);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 12 }}>
+    <ScreenLayout>
       <AppCard>
-        <AppCard.Title title="Metas activas" subtitle={`${activeGoals.length} en tu rutina`} />
-        <AppCard.Content style={{ gap: 6 }}>
+        <AppCard.Content style={{ gap: 12 }}>
+          <View style={styles.sectionHeader}>
+            <View style={{ flex: 1 }}>
+              <Text variant="titleMedium">Metas activas</Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {activeGoals.length} en tu rutina
+              </Text>
+            </View>
+            {activeGoals.length > 0 ? (
+              <Button mode="contained-tonal" icon="plus" onPress={() => setAddOpen(true)}>
+                Agregar
+              </Button>
+            ) : null}
+          </View>
+
           {activeGoals.length === 0 ? (
             <EmptyState
               icon={<TargetIllustration size={84} />}
@@ -54,38 +67,54 @@ export default function GoalsScreen() {
               onAction={() => setAddOpen(true)}
             />
           ) : (
-            <>
-              {activeGoals.map((goal) => (
-                <React.Fragment key={goal.id}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <List.Icon icon="target" />
-                    <View style={{ flex: 1 }}>
-                      <Text variant="bodyLarge">{goal.title}</Text>
-                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                        Desde {goal.createdOn}
-                      </Text>
-                    </View>
-                    <IconButton
-                      icon="trash-can-outline"
-                      onPress={() => setDeleteGoalId(goal.id)}
-                      accessibilityLabel="Eliminar meta"
-                    />
+            activeGoals.map((goal) => (
+              <View
+                key={goal.id}
+                style={[
+                  styles.goalRow,
+                  { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outlineVariant },
+                ]}
+              >
+                <View style={styles.goalRowContent}>
+                  <View style={[styles.goalIcon, { backgroundColor: theme.colors.secondaryContainer }]}>
+                    <MaterialCommunityIcons name="target" size={18} color={theme.colors.secondary} />
                   </View>
-                  <Divider />
-                </React.Fragment>
-              ))}
+                  <View style={{ flex: 1 }}>
+                    <Text variant="bodyLarge">{goal.title}</Text>
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      Desde {goal.createdOn}
+                    </Text>
+                  </View>
+                  <IconButton
+                    icon="trash-can-outline"
+                    onPress={() => setDeleteGoalId(goal.id)}
+                    accessibilityLabel="Eliminar meta"
+                  />
+                </View>
+              </View>
+            ))
+          )}
 
-              <Button mode="contained" icon="plus" onPress={() => setAddOpen(true)} style={{ marginTop: 6 }}>
+          {activeGoals.length > 0 ? (
+            <View style={styles.addRow}>
+              <Button mode="contained" icon="plus" onPress={() => setAddOpen(true)}>
                 Agregar meta
               </Button>
-            </>
-          )}
+            </View>
+          ) : null}
         </AppCard.Content>
       </AppCard>
 
       <AppCard>
-        <AppCard.Title title="Apariencia" subtitle="Modo claro / oscuro" />
-        <AppCard.Content style={{ gap: 10 }}>
+        <AppCard.Content style={{ gap: 12 }}>
+          <View style={styles.sectionHeader}>
+            <View style={{ flex: 1 }}>
+              <Text variant="titleMedium">Apariencia</Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                Modo claro / oscuro
+              </Text>
+            </View>
+          </View>
           <SegmentedButtons
             value={preference}
             onValueChange={(v) => setPreference(v as ThemePreference)}
@@ -102,7 +131,7 @@ export default function GoalsScreen() {
       </AppCard>
 
       <Portal>
-        <Dialog visible={addOpen} onDismiss={closeAdd}>
+        <Dialog visible={addOpen} onDismiss={closeAdd} style={styles.dialog}>
           <Dialog.Title>Nueva meta</Dialog.Title>
           <Dialog.Content style={{ gap: 10 }}>
             <TextInput
@@ -148,6 +177,38 @@ export default function GoalsScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </ScrollView>
+    </ScreenLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: 10,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  goalRow: {
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  goalRowContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  goalIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addRow: {
+    gap: 6,
+  },
+});

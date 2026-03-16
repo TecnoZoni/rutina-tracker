@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Card, type CardProps, useTheme } from 'react-native-paper';
 
 type AppCardOwnProps = Omit<CardProps, 'mode' | 'elevation'>;
@@ -15,7 +15,7 @@ function AppCardBase({ style, ...rest }: AppCardOwnProps) {
   const theme = useTheme();
   return (
     <Card
-      mode="elevated"
+      mode="contained"
       style={[
         styles.card,
         {
@@ -31,18 +31,9 @@ function AppCardBase({ style, ...rest }: AppCardOwnProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
-    ...Platform.select({
-      android: { elevation: 3 },
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.14,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 10 },
-      },
-      default: {},
-    }),
+    overflow: 'hidden',
   },
 });
 

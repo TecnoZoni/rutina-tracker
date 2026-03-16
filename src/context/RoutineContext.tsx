@@ -20,7 +20,7 @@ type RoutineState = {
 
 type RoutineContextValue = RoutineState & {
   addGoal: (title: string) => void;
-  deleteGoal: (goalId: string) => void;
+  deleteGoal: (goalId: string, deletedOn?: DateId) => void;
   toggleCompletion: (goalId: string, dateId: DateId) => void;
   getActiveGoalsForDate: (dateId: DateId) => Goal[];
   getDayProgress: (dateId: DateId) => { total: number; done: number; isPerfect: boolean };
@@ -124,8 +124,8 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'addGoal', goal });
   }, []);
 
-  const deleteGoal = React.useCallback((goalId: string) => {
-    dispatch({ type: 'deleteGoal', goalId, deletedOn: todayId() });
+  const deleteGoal = React.useCallback((goalId: string, deletedOn?: DateId) => {
+    dispatch({ type: 'deleteGoal', goalId, deletedOn: deletedOn ?? todayId() });
   }, []);
 
   const toggleCompletion = React.useCallback((goalId: string, dateId: DateId) => {

@@ -1,12 +1,9 @@
 import * as React from 'react';
-import { ScrollView, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Button,
-  Chip,
   Dialog,
-  Divider,
-  FAB,
   IconButton,
   Portal,
   ProgressBar,
@@ -18,6 +15,8 @@ import {
 import AppCard from '../components/AppCard';
 import EmptyState from '../components/EmptyState';
 import { ChecklistIllustration } from '../components/Illustrations';
+import NoticeBanner from '../components/NoticeBanner';
+import ScreenLayout from '../components/ScreenLayout';
 import { useRoutine } from '../context/RoutineContext';
 import { addDays, formatLongDate, todayId, type DateId } from '../utils/date';
 
@@ -33,11 +32,22 @@ export default function DayScreen() {
 
   const [deleteGoalId, setDeleteGoalId] = React.useState<string | null>(null);
 
+  const today = todayId();
+  const isPastDay = dateId < today;
+  const canEdit = !isPastDay;
+
   const activeGoals = React.useMemo(() => getActiveGoalsForDate(dateId), [getActiveGoalsForDate, dateId]);
   const completedSet = React.useMemo(() => new Set(completionsByDate[dateId] ?? []), [completionsByDate, dateId]);
   const progress = React.useMemo(() => getDayProgress(dateId), [getDayProgress, dateId]);
 
   const percent = progress.total > 0 ? progress.done / progress.total : 0;
+
+  React.useEffect(() => {
+    if (isPastDay && addOpen) {
+      setAddOpen(false);
+      setNewGoalTitle('');
+    }
+  }, [addOpen, isPastDay]);
 
   const closeAdd = React.useCallback(() => {
     setAddOpen(false);
@@ -45,133 +55,194 @@ export default function DayScreen() {
   }, []);
 
   const submitAdd = React.useCallback(() => {
+    if (!canEdit) return;
     addGoal(newGoalTitle);
     closeAdd();
-  }, [addGoal, closeAdd, newGoalTitle]);
+  }, [addGoal, closeAdd, newGoalTitle, canEdit]);
+
+  const openAdd = React.useCallback(() => {
+    if (!canEdit) return;
+    setAddOpen(true);
+  }, [canEdit]);
 
   const jumpToToday = React.useCallback(() => setDateId(todayId()), []);
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 12 }}>
-        <AppCard>
-          <AppCard.Content style={{ gap: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <IconButton
-                icon="chevron-left"
-                onPress={() => setDateId((d) => addDays(d, -1))}
-                accessibilityLabel="Día anterior"
-              />
-              <View style={{ flex: 1 }}>
-                <Text variant="titleMedium" style={{ textTransform: 'capitalize' }}>
-                  {formatLongDate(dateId)}
-                </Text>
-                {!isHydrated ? (
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    Cargando…
-                  </Text>
-                ) : progress.total === 0 ? (
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    No hay metas activas para este día.
-                  </Text>
-                ) : (
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    {progress.done}/{progress.total} completadas
-                  </Text>
-                )}
-              </View>
-              <IconButton
-                icon="chevron-right"
-                onPress={() => setDateId((d) => addDays(d, 1))}
-                accessibilityLabel="Día siguiente"
-              />
+    <ScreenLayout contentContainerStyle={{ paddingBottom: 32 }}>
+      <AppCard>
+        <AppCard.Content style={styles.dayCard}>
+          <View style={styles.dayStrip}>
+            <IconButton
+              icon="chevron-left"
+              onPress={() => setDateId((d) => addDays(d, -1))}
+              accessibilityLabel="Día anterior"
+            />
+            <View style={styles.dayTitleWrap}>
+              <Text variant="titleLarge" style={styles.dayTitle}>
+                {formatLongDate(dateId)}
+              </Text>
+              <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                Registro del día
+              </Text>
             </View>
+            <IconButton
+              icon="chevron-right"
+              onPress={() => setDateId((d) => addDays(d, 1))}
+              accessibilityLabel="Día siguiente"
+            />
+          </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Button mode="outlined" onPress={jumpToToday} icon="calendar-today">
-                Hoy
+          <View style={styles.dayActions}>
+            <Button mode="outlined" onPress={jumpToToday} icon="calendar-today">
+              Hoy
+            </Button>
+            {progress.isPerfect ? (
+              <View
+                style={[
+                  styles.stamp,
+                  {
+                    backgroundColor: theme.colors.secondaryContainer,
+                    borderColor: theme.colors.secondary,
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons name="check-decagram" size={16} color={theme.colors.secondary} />
+                <Text variant="labelSmall" style={{ color: theme.colors.onSecondaryContainer }}>
+                  Día completo
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          {!isHydrated ? (
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Cargando…
+            </Text>
+          ) : progress.total === 0 ? (
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              No hay metas activas para este día.
+            </Text>
+          ) : (
+            <View style={styles.progressBlock}>
+              <View style={styles.progressHeader}>
+                <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Progreso
+                </Text>
+                <Text variant="labelSmall" style={{ color: theme.colors.onSurface }}>
+                  {progress.done}/{progress.total}
+                </Text>
+              </View>
+              <ProgressBar progress={percent} color={theme.colors.primary} style={styles.progressBar} />
+            </View>
+          )}
+
+          {progress.total > 0 && !progress.isPerfect && !isPastDay ? (
+            <View style={styles.helperRow}>
+              <MaterialCommunityIcons name="information-outline" size={16} color={theme.colors.onSurfaceVariant} />
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}>
+                Completá todas las metas para registrar este día en el calendario.
+              </Text>
+            </View>
+          ) : null}
+        </AppCard.Content>
+      </AppCard>
+
+      {isPastDay ? (
+        <NoticeBanner
+          title="Solo lectura"
+          description="En días anteriores no se pueden agregar ni editar actividades. Podés ver lo registrado y seguir sumando desde hoy."
+        />
+      ) : null}
+
+      <AppCard>
+        <AppCard.Content style={{ gap: 12 }}>
+          <View style={styles.sectionHeader}>
+            <View style={{ flex: 1 }}>
+              <Text variant="titleMedium">Checklist</Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                Marcá tus metas del día
+              </Text>
+            </View>
+            {activeGoals.length > 0 ? (
+              <Button mode="contained-tonal" icon="plus" onPress={openAdd} disabled={!canEdit}>
+                Agregar
               </Button>
-              {progress.isPerfect ? (
-                <Chip icon="check-decagram" style={{ backgroundColor: theme.colors.primaryContainer }}>
-                  Día completado
-                </Chip>
+            ) : null}
+          </View>
+
+          {activeGoals.length === 0 ? (
+            <EmptyState
+              icon={<ChecklistIllustration size={84} />}
+              title="Sumá tu primera meta"
+              description={
+                canEdit
+                  ? 'Creá metas y marcá cada día. Si completás todas, el día queda guardado en el calendario.'
+                  : 'No hay metas activas para este día.'
+              }
+              actionLabel={canEdit ? 'Agregar meta' : undefined}
+              onAction={canEdit ? openAdd : undefined}
+            />
+          ) : (
+            activeGoals.map((goal) => {
+              const checked = completedSet.has(goal.id);
+              return (
+                <TouchableRipple
+                  key={goal.id}
+                  onPress={canEdit ? () => toggleCompletion(goal.id, dateId) : undefined}
+                  borderless={false}
+                  disabled={!canEdit}
+                  style={[
+                    styles.goalRow,
+                    {
+                      backgroundColor: checked ? theme.colors.secondaryContainer : theme.colors.surfaceVariant,
+                      borderColor: checked ? theme.colors.secondary : theme.colors.outlineVariant,
+                    },
+                    !canEdit && styles.goalRowDisabled,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={checked ? 'Marcar como pendiente' : 'Marcar como completada'}
+                >
+                  <View style={styles.goalRowContent}>
+                    <View style={styles.checkboxWrap}>
+                      <MaterialCommunityIcons
+                        name={checked ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                        size={24}
+                        color={checked ? theme.colors.secondary : theme.colors.onSurfaceVariant}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text variant="bodyLarge">{goal.title}</Text>
+                    </View>
+                    <IconButton
+                      icon="trash-can-outline"
+                      onPress={() => setDeleteGoalId(goal.id)}
+                      accessibilityLabel="Eliminar meta"
+                      disabled={!canEdit}
+                      iconColor={canEdit ? theme.colors.onSurfaceVariant : theme.colors.outline}
+                    />
+                  </View>
+                </TouchableRipple>
+              );
+            })
+          )}
+
+          {activeGoals.length > 0 ? (
+            <View style={styles.addRow}>
+              <Button mode="contained" icon="plus" onPress={openAdd} disabled={!canEdit}>
+                Agregar meta
+              </Button>
+              {!canEdit ? (
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Solo desde hoy ({today}).
+                </Text>
               ) : null}
             </View>
-
-            {progress.total > 0 ? (
-              <ProgressBar progress={percent} color={theme.colors.primary} style={{ height: 10, borderRadius: 999 }} />
-            ) : null}
-
-            {progress.total > 0 && !progress.isPerfect ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <MaterialCommunityIcons name="information-outline" size={16} color={theme.colors.onSurfaceVariant} />
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}>
-                  Completá todas las metas para registrar este día en el calendario.
-                </Text>
-              </View>
-            ) : null}
-          </AppCard.Content>
-        </AppCard>
-
-        <AppCard>
-          <AppCard.Title title="Checklist" subtitle="Marcá tus metas del día" />
-          <AppCard.Content style={{ gap: 6 }}>
-            {activeGoals.length === 0 ? (
-              <EmptyState
-                icon={<ChecklistIllustration size={84} />}
-                title="Sumá tu primera meta"
-                description="Creá metas y marcá cada día. Si completás todas, el día queda guardado en el calendario."
-                actionLabel="Agregar meta"
-                onAction={() => setAddOpen(true)}
-              />
-            ) : (
-              activeGoals.map((goal) => {
-                const checked = completedSet.has(goal.id);
-                return (
-                  <React.Fragment key={goal.id}>
-                    <TouchableRipple
-                      onPress={() => toggleCompletion(goal.id, dateId)}
-                      borderless={false}
-                      style={{ borderRadius: 8 }}
-                      accessibilityRole="button"
-                      accessibilityLabel={checked ? 'Marcar como pendiente' : 'Marcar como completada'}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingRight: 4 }}>
-                        <View style={{ width: 44, alignItems: 'center', justifyContent: 'center' }}>
-                          <MaterialCommunityIcons
-                            name={checked ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                            size={26}
-                            color={checked ? theme.colors.primary : theme.colors.onSurfaceVariant}
-                          />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text variant="bodyLarge">{goal.title}</Text>
-                        </View>
-                        <IconButton
-                          icon="trash-can-outline"
-                          onPress={() => setDeleteGoalId(goal.id)}
-                          accessibilityLabel="Eliminar meta"
-                        />
-                      </View>
-                    </TouchableRipple>
-                    <Divider />
-                  </React.Fragment>
-                );
-              })
-            )}
-          </AppCard.Content>
-        </AppCard>
-      </ScrollView>
-
-      <FAB
-        icon="plus"
-        label="Agregar meta"
-        onPress={() => setAddOpen(true)}
-        style={{ position: 'absolute', right: 16, bottom: 16 }}
-      />
+          ) : null}
+        </AppCard.Content>
+      </AppCard>
 
       <Portal>
-        <Dialog visible={addOpen} onDismiss={closeAdd}>
+        <Dialog visible={addOpen} onDismiss={closeAdd} style={styles.dialog}>
           <Dialog.Title>Nueva meta</Dialog.Title>
           <Dialog.Content style={{ gap: 10 }}>
             <TextInput
@@ -198,7 +269,7 @@ export default function DayScreen() {
           <Dialog.Content>
             <Text variant="bodyMedium">¿Seguro que querés eliminar esta meta?</Text>
             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 6 }}>
-              Se deja de contar desde hoy ({todayId()}).
+              Se deja de contar desde {dateId}.
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
@@ -208,7 +279,7 @@ export default function DayScreen() {
               buttonColor={theme.colors.error}
               textColor={theme.colors.onError}
               onPress={() => {
-                if (deleteGoalId) deleteGoal(deleteGoalId);
+                if (deleteGoalId) deleteGoal(deleteGoalId, dateId);
                 setDeleteGoalId(null);
               }}
             >
@@ -217,6 +288,87 @@ export default function DayScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </View>
+    </ScreenLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: 10,
+  },
+  dayCard: {
+    gap: 12,
+  },
+  dayStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dayTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dayTitle: {
+    textTransform: 'capitalize',
+    textAlign: 'center',
+  },
+  dayActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  stamp: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  progressBlock: {
+    gap: 6,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressBar: {
+    height: 10,
+    borderRadius: 999,
+  },
+  helperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  goalRow: {
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  goalRowDisabled: {
+    opacity: 0.6,
+  },
+  goalRowContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  checkboxWrap: {
+    width: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addRow: {
+    gap: 6,
+  },
+});
