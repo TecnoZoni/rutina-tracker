@@ -21,6 +21,7 @@ type RoutineState = {
 type RoutineContextValue = RoutineState & {
   addGoal: (title: string) => void;
   deleteGoal: (goalId: string, deletedOn?: DateId) => void;
+  reorderGoals: (orderedGoalIds: string[]) => void;
   toggleCompletion: (goalId: string, dateId: DateId) => void;
   getActiveGoalsForDate: (dateId: DateId) => Goal[];
   getDayProgress: (dateId: DateId) => { total: number; done: number; isPerfect: boolean };
@@ -34,6 +35,7 @@ type Action =
   | { type: 'hydrate'; goals: Goal[]; completionsByDate: CompletionsByDate }
   | { type: 'addGoal'; goal: Goal }
   | { type: 'deleteGoal'; goalId: string; deletedOn: DateId }
+  | { type: 'reorderGoals'; orderedGoalIds: string[] }
   | { type: 'toggleCompletion'; goalId: string; dateId: DateId };
 
 function isGoalActiveOn(goal: Goal, dateId: DateId): boolean {
@@ -61,6 +63,15 @@ function reducer(state: RoutineState, action: Action): RoutineState {
         goal.id === action.goalId ? { ...goal, deletedOn: action.deletedOn } : goal,
       );
       return { ...state, goals: nextGoals };
+    }
+    case 'reorderGoals': {
+      const activeGoals = state.goals.filter((goal) => !goal.deletedOn);
+      const inactiveGoals = state.goals.filter((goal) => goal.deletedOn);
+      const orderMap = new Map(action.orderedGoalIds.map((id, index) => [id, index]));
+      const sortedActive = [...activeGoals].sort(
+        (a, b) => (orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+      );
+      return { ...state, goals: [...sortedActive, ...inactiveGoals] };
     }
     case 'toggleCompletion': {
       const current = state.completionsByDate[action.dateId] ?? [];
@@ -128,6 +139,10 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'deleteGoal', goalId, deletedOn: deletedOn ?? todayId() });
   }, []);
 
+  const reorderGoals = React.useCallback((orderedGoalIds: string[]) => {
+    dispatch({ type: 'reorderGoals', orderedGoalIds });
+  }, []);
+
   const toggleCompletion = React.useCallback((goalId: string, dateId: DateId) => {
     dispatch({ type: 'toggleCompletion', goalId, dateId });
   }, []);
@@ -158,12 +173,22 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
       ...state,
       addGoal,
       deleteGoal,
+      reorderGoals,
       toggleCompletion,
       getActiveGoalsForDate,
       getDayProgress,
       isPerfectDay,
     }),
-    [state, addGoal, deleteGoal, toggleCompletion, getActiveGoalsForDate, getDayProgress, isPerfectDay],
+    [
+      state,
+      addGoal,
+      deleteGoal,
+      reorderGoals,
+      toggleCompletion,
+      getActiveGoalsForDate,
+      getDayProgress,
+      isPerfectDay,
+    ],
   );
 
   return <RoutineContext.Provider value={value}>{children}</RoutineContext.Provider>;

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Button,
@@ -11,17 +11,18 @@ import {
   TextInput,
   useTheme,
 } from 'react-native-paper';
+import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import AppCard from '../components/AppCard';
 import EmptyState from '../components/EmptyState';
 import { TargetIllustration } from '../components/Illustrations';
 import ScreenLayout from '../components/ScreenLayout';
-import { useRoutine } from '../context/RoutineContext';
+import { useRoutine, type Goal } from '../context/RoutineContext';
 import { useAppTheme, type ThemePreference } from '../context/ThemeContext';
 import { todayId } from '../utils/date';
 
 export default function GoalsScreen() {
   const theme = useTheme();
-  const { goals, addGoal, deleteGoal } = useRoutine();
+  const { goals, addGoal, deleteGoal, reorderGoals } = useRoutine();
   const { preference, setPreference } = useAppTheme();
 
   const [addOpen, setAddOpen] = React.useState(false);
@@ -39,6 +40,46 @@ export default function GoalsScreen() {
     addGoal(newGoalTitle);
     closeAdd();
   }, [addGoal, closeAdd, newGoalTitle]);
+
+  const handleDragEnd = React.useCallback(
+    ({ data }: { data: Goal[] }) => {
+      reorderGoals(data.map((goal) => goal.id));
+    },
+    [reorderGoals],
+  );
+
+  const renderGoalItem = React.useCallback(
+    ({ item, drag, isActive }: RenderItemParams<Goal>) => (
+      <View
+        style={[
+          styles.goalRow,
+          { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outlineVariant },
+          isActive ? styles.goalRowActive : null,
+        ]}
+      >
+        <View style={styles.goalRowContent}>
+          <View style={[styles.goalIcon, { backgroundColor: theme.colors.secondaryContainer }]}>
+            <MaterialCommunityIcons name="target" size={18} color={theme.colors.secondary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text variant="bodyLarge">{item.title}</Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Desde {item.createdOn}
+            </Text>
+          </View>
+          <Pressable onLongPress={drag} style={styles.dragHandle} accessibilityLabel="Reordenar meta">
+            <MaterialCommunityIcons name="drag" size={20} color={theme.colors.onSurfaceVariant} />
+          </Pressable>
+          <IconButton
+            icon="trash-can-outline"
+            onPress={() => setDeleteGoalId(item.id)}
+            accessibilityLabel="Eliminar meta"
+          />
+        </View>
+      </View>
+    ),
+    [theme.colors, setDeleteGoalId],
+  );
 
   return (
     <ScreenLayout>
@@ -67,32 +108,15 @@ export default function GoalsScreen() {
               onAction={() => setAddOpen(true)}
             />
           ) : (
-            activeGoals.map((goal) => (
-              <View
-                key={goal.id}
-                style={[
-                  styles.goalRow,
-                  { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outlineVariant },
-                ]}
-              >
-                <View style={styles.goalRowContent}>
-                  <View style={[styles.goalIcon, { backgroundColor: theme.colors.secondaryContainer }]}>
-                    <MaterialCommunityIcons name="target" size={18} color={theme.colors.secondary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text variant="bodyLarge">{goal.title}</Text>
-                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                      Desde {goal.createdOn}
-                    </Text>
-                  </View>
-                  <IconButton
-                    icon="trash-can-outline"
-                    onPress={() => setDeleteGoalId(goal.id)}
-                    accessibilityLabel="Eliminar meta"
-                  />
-                </View>
-              </View>
-            ))
+            <DraggableFlatList
+              data={activeGoals}
+              keyExtractor={(item) => item.id}
+              renderItem={renderGoalItem}
+              onDragEnd={handleDragEnd}
+              activationDistance={8}
+              scrollEnabled={false}
+              contentContainerStyle={styles.listContent}
+            />
           )}
 
           {activeGoals.length > 0 ? (
@@ -153,7 +177,7 @@ export default function GoalsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={!!deleteGoalId} onDismiss={() => setDeleteGoalId(null)}>
+        <Dialog visible={!!deleteGoalId} onDismiss={() => setDeleteGoalId(null)} style={styles.dialog}>
           <Dialog.Title>Eliminar meta</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">¿Seguro que querés eliminar esta meta?</Text>
@@ -194,12 +218,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
   },
+  goalRowActive: {
+    opacity: 0.8,
+  },
   goalRowContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,
+  },
+  dragHandle: {
+    padding: 6,
   },
   goalIcon: {
     width: 36,
@@ -210,5 +240,8 @@ const styles = StyleSheet.create({
   },
   addRow: {
     gap: 6,
+  },
+  listContent: {
+    gap: 10,
   },
 });
