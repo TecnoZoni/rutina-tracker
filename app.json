@@ -24,6 +24,16 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.tecnozoni.rutinatracker"
     },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36
+          }
+        }
+      ]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     },
