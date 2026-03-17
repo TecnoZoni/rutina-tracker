@@ -264,7 +264,7 @@ export default function DayScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={!!deleteGoalId} onDismiss={() => setDeleteGoalId(null)}>
+        <Dialog visible={!!deleteGoalId} onDismiss={() => setDeleteGoalId(null)} style={styles.dialog}>
           <Dialog.Title>Eliminar meta</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">¿Seguro que querés eliminar esta meta?</Text>
