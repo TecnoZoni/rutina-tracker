@@ -16,7 +16,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.rutinatracker.app",
+      "package": "com.tecnozoni.rutinatracker",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#F8FAFC",
@@ -24,8 +24,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.tecnozoni.rutinatracker"
+      "predictiveBackGestureEnabled": false
     },
     "plugins": [
       [
