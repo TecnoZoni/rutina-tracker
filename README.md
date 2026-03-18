@@ -2,7 +2,7 @@
 
 App mobile para construir rutinas diarias con metas, checklist por dia y calendario de cumplimiento. Proyecto optimizado para produccion con APKs livianos y releases firmados.
 
-APK (placeholder): [Descargar APK]()
+APK (placeholder): [Descargar APK](https://drive.google.com/file/d/1XFPFvjYLeMoxEyRr5Kov4Zj4lMa06jrv/view?usp=sharing)
 
 **Demo y objetivo**
 - App offline-first para seguimiento diario de metas con persistencia local.
